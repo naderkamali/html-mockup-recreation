@@ -43,6 +43,46 @@ h1,
   }
 }
 
+.masthead {
+  .links {
+    float: right;
+  }
+  display: flex;
+
+  header {
+    background-color: #333;
+    color: #ggg;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: left;
+  }
+  h1 {
+    margin: 10;
+    flex: 1;
+  }
+  nav {
+    flex: 1;
+  }
+  nav ul {
+    align-items: right;
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+  }
+  nav ul li {
+    margin-right: 20px;
+  }
+  nav ul li a {
+    color: #ggg;
+    text-decoration: none;
+  }
+  nav ul li a:hover {
+    text-decoration: underline;
+  }
+}
+
 .upload-section {
   display: flex;
   height: 200px;
