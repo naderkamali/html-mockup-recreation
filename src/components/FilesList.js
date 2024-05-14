@@ -1,17 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import download from 'downloadjs';
-import axios from 'axios';
-import { API_URL } from '../utils/constants';
+import React, { useState, useEffect } from "react";
+import download from "downloadjs";
+import axios from "axios";
+import { API_URL } from "../utils/constants";
+import mammoth from "mammoth";
+
+var options = {
+  styleMap: [
+      "comment-reference => sup"
+  ]
+};
 
 const FilesList = () => {
   const [filesList, setFilesList] = useState([]);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState("");
+  const [previewContent, setPreviewContent] = useState("");
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   useEffect(() => {
     const getFilesList = async () => {
       try {
         const { data } = await axios.get(`${API_URL}/getAllFiles`);
-        setErrorMsg('');
+        setErrorMsg("");
         setFilesList(data);
       } catch (error) {
         error.response && setErrorMsg(error.response.data);
@@ -21,20 +30,27 @@ const FilesList = () => {
     getFilesList();
   }, []);
 
-  const downloadFile = async (id, path, mimetype) => {
+  const previewFile = async (id) => {
     try {
       const result = await axios.get(`${API_URL}/download/${id}`, {
-        responseType: 'blob'
+        responseType: "blob",
       });
-      const split = path.split('/');
-      const filename = split[split.length - 1];
-      setErrorMsg('');
-      return download(result.data, filename, mimetype);
+      const reader = new FileReader();
+      reader.readAsArrayBuffer(result.data);
+      reader.onload = async () => {
+        const arrayBuffer = reader.result;
+        const { value } = await mammoth.convertToHtml({ arrayBuffer }, options);
+        setPreviewContent(value);
+        setIsPreviewOpen(true);
+      };
     } catch (error) {
-      if (error.response && error.response.status === 400) {
-        setErrorMsg('Error while downloading file. Try again later');
-      }
+      // Handle error
     }
+  };
+
+  const closePreview = () => {
+    setIsPreviewOpen(false);
+    setPreviewContent("");
   };
 
   return (
@@ -45,38 +61,42 @@ const FilesList = () => {
           <tr>
             <th>Title</th>
             <th>Description</th>
-            <th>Download File</th>
+            <th>Preview File</th>
           </tr>
         </thead>
         <tbody>
           {filesList.length > 0 ? (
-            filesList.map(
-              ({ _id, title, description, file_path, file_mimetype }) => (
-                <tr key={_id}>
-                  <td className="file-title">{title}</td>
-                  <td className="file-description">{description}</td>
-                  <td>
-                    <a
-                      href="#/"
-                      onClick={() =>
-                        downloadFile(_id, file_path, file_mimetype)
-                      }
-                    >
-                      Download
-                    </a>
-                  </td>
-                </tr>
-              )
-            )
+            filesList.map(({ _id, title, description }) => (
+              <tr key={_id}>
+                <td className="file-title">{title}</td>
+                <td className="file-description">{description}</td>
+                <td>
+                  <button onClick={() => previewFile(_id)}>Preview</button>
+                </td>
+              </tr>
+            ))
           ) : (
             <tr>
-              <td colSpan={3} style={{ fontWeight: '300' }}>
+              <td colSpan={3} style={{ fontWeight: "300" }}>
                 No files found. Please add some.
               </td>
             </tr>
           )}
         </tbody>
       </table>
+
+      {/* Render document preview if preview is open */}
+      {isPreviewOpen && (
+        <div className="preview-wrapper">
+          <div className="preview-container">
+            <button onClick={closePreview}>Close Preview</button>
+            <div
+              className="preview-content"
+              dangerouslySetInnerHTML={{ __html: previewContent }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
